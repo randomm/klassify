@@ -45,8 +45,11 @@ class BaseHandler(RequestHandler):
 
         return '{prefix}:{key}'.format(
             prefix=prefix,
-            key='_'.join(keys)
+            key='_'.join(keys).lower().replace(" ", "_")
         )
+
+    def underscorize(self, keys):
+        return '_'.join(keys).lower().replace(" ", "_")
 
 
 class TrainerHandler(BaseHandler):
@@ -62,6 +65,23 @@ class TrainerHandler(BaseHandler):
             self.build_key('labels'),
             label
         )
+
+        if self.get_json().has_key('context'):
+            (context, ) = self.get_json('context')
+
+            yield Task(
+                store.sadd,
+                self.build_key('contexts'),
+                context
+            )
+
+            label = self.underscorize([context, label])
+
+            yield Task(
+                store.sadd,
+                self.build_key('context_labels'),
+                label
+            )
 
         counter = collections.Counter(tokenize(text))
 
@@ -93,10 +113,19 @@ class ClassifierHandler(BaseHandler):
 
         scores = collections.defaultdict(lambda: 0.)
 
-        labels = yield Task(
-            store.smembers,
-            self.build_key('labels')
-        )
+        if self.get_json().has_key('context'):
+            (context, ) = self.get_json('context')
+
+            labels = yield Task(
+                store.smembers,
+                self.build_key('context_labels')
+            )
+
+        else:
+            labels = yield Task(
+                store.smembers,
+                self.build_key('labels')
+            )
 
         best = None
         best_score = -Infinity
@@ -207,6 +236,22 @@ class LabelsHandler(BaseHandler):
 
         self.response({
             'labels': list(labels)
+        })
+
+
+class ContextsHandler(BaseHandler):
+
+    @coroutine
+    def get(self):
+        store = self.application.redis
+
+        contexts = yield Task(
+            store.smembers,
+            self.build_key('contexts')
+        )
+
+        self.response({
+            'contexts': list(contexts)
         })
 
 

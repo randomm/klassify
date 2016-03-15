@@ -8,7 +8,7 @@ from tornadoredis import Client
 
 from backend.handlers import (
     TrainerHandler, ClassifierHandler, InterfaceHandler,
-    StatsHandler, LabelsHandler, StatsWSHandler,
+    StatsHandler, LabelsHandler, ContextsHandler, StatsWSHandler,
     WordsHandler
 )
 
@@ -39,6 +39,7 @@ class Klassify(Application):
             (r'/stats', StatsHandler),
             (r'/words/(?P<label>[\w-]+)', WordsHandler),
             (r'/labels', LabelsHandler),
+            (r'/contexts', ContextsHandler),
             (r'/', InterfaceHandler),
             (r'/ws', StatsWSHandler),
 
